@@ -15,11 +15,12 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
   late NextbillionMapController controller;
   final logger = Logger();
+  List<DirectionsRoute> routes = [];
 
   @override
   void initState() {
     super.initState();
-    NextBillion.initNextBillion('1ee3375a754f4137969a2b708d071124');
+    NextBillion.initNextBillion('YOUR_KEY');
     NBNavigation.setUserId('miguel-first-nb');
     NBNavigation.getNBId().then((value) {
       logger.i('nb_id: $value');
@@ -32,10 +33,35 @@ class MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Route Map')),
-      body: NBMap(
-        onMapCreated: onMapCreated,
-        initialCameraPosition: CameraPosition(target: LatLng(widget.destination['latitude']!, widget.destination['longitude']!), zoom: 6),
-      ),
+      body: Stack(
+        children: [
+          NBMap(
+            onMapCreated: onMapCreated,
+            initialCameraPosition: CameraPosition(target: LatLng(widget.destination['latitude']!, widget.destination['longitude']!), zoom: 6),
+          ),
+          Positioned(
+            child: Row(
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    final navNextBillionMap = await NavNextBillionMap.create(controller);
+                    navNextBillionMap.clearRoute();
+                  },
+                  child: const Text('Clear Routes')
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    NavigationLauncherConfig config = NavigationLauncherConfig(route: routes.first, routes: routes, shouldSimulateRoute: true, themeMode: NavigationThemeMode.dark);
+                    NBNavigation.startNavigation(config);
+                  },
+                  child: const Text('Start Navigation')
+                ),
+              ],
+            ),
+          )
+        ],
+      ) 
+      
     );
   } 
 
@@ -56,10 +82,7 @@ class MapScreenState extends State<MapScreen> {
       final result = await NBNavigation.fetchRoute(requestParams);
       final navNextBillionMap = await NavNextBillionMap.create(controller);
       await navNextBillionMap.drawRoute(result.directionsRoutes);
-
-      List<DirectionsRoute> routes = result.directionsRoutes;
-      NavigationLauncherConfig config = NavigationLauncherConfig(route: routes.first, routes: routes, shouldSimulateRoute: true, themeMode: NavigationThemeMode.dark);
-      NBNavigation.startNavigation(config);
+      routes = result.directionsRoutes;
     } catch (e) {
       logger.e(e);
     }
